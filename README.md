@@ -12,4 +12,4 @@
 - seaborn 0.11.2
 
 ## Input data to the model
-The input data used for model training can be found at `./conbined_data.csv.` The file contains approximately 16k anti-fungal compounds and 12k human metabolites used as negative sets.
+The input data used for model training can be found at `./Datasets/conbined_data.csv.` The file contains approximately 16k anti-fungal compounds and 12k human metabolites used as negative sets.
