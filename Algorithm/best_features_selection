@@ -1,1 +1,91 @@
+# Install packages.
+#capture
+!pip install rdkit
+from rdkit import Chem
+from rdkit.Chem import Draw
+from rdkit.Chem.Draw import IPythonConsole
+from rdkit.Chem import Descriptors
+from rdkit.Chem import AllChem
+from rdkit import DataStructs
+from rdkit.Chem import Lipinski
+!pip install numpy --upgrade
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+
+#==================================================================================================================================#
+#Top 30 feature selection by RF
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+from sklearn.metrics import (
+    accuracy_score, classification_report, confusion_matrix,
+    roc_auc_score, roc_curve, matthews_corrcoef, balanced_accuracy_score)
+
+  # Step 1: Read and prepare the data
+df = pd.read_csv('merged_output.csv') #change the file path if needed
+X = df.drop(['Label', 'SMILES'], axis=1)
+y = df.iloc[:, -1].values
+
+X = X.dropna()  # Drop rows with NaN
+y = y[X.index]  
+
+# Split data into training and testing sets with stratification
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, random_state=0, stratify=y
+)
+
+# Scale numerical features
+sc = StandardScaler()
+X_train = sc.fit_transform(X_train)
+X_test = sc.transform(X_test)
+
+# Step 2: Train the model on all features
+classifier = RandomForestClassifier(
+    n_estimators=300, random_state=0, bootstrap=False,
+    max_depth=None, max_features='sqrt',
+    min_samples_leaf=1, min_samples_split=2
+)
+classifier.fit(X_train, y_train)
+
+# Get feature importances
+feature_importances = classifier.feature_importances_
+features = X.columns
+importance_df = pd.DataFrame({
+    'Feature': features,
+    'Importance': feature_importances
+}).sort_values(by='Importance', ascending=False)
+
+# Save top 30 features to CSV
+top_30 = 30
+importance_top_30 = importance_df.iloc[:top_30]
+importance_top_30.to_csv('best_features_RF.csv', index=False)
+print("Top 30 features saved to 'top_30_features_RF.csv'.")
+
+#graph feature importances
+plt.figure(figsize=(8, 8))  # Compress horizontally by reducing width
+
+for i, (feature, importance) in enumerate(zip(importance_top_30['Feature'], importance_top_30['Importance'])):
+    plt.plot([0, importance], [i, i], 'k-', lw=0.8)  # Thin horizontal line
+    plt.plot(importance, i, 'bo', markersize=8)  # Big blue dot at the end
+
+plt.yticks(range(top_30), importance_top_30['Feature'])
+plt.gca().invert_yaxis()  # Invert y-axis to show the most important features at the top
+plt.xlabel('Feature Importance by RF', fontsize=14)
+plt.xticks(fontsize=12, rotation=45)  # Tilt x-axis labels by 45 degrees
+plt.grid(axis='x', alpha=0.3)
+plt.tight_layout()
+
+
+plt.savefig(
+    'top_30_fetures_RF.png',
+    dpi=600,  # High resolution
+    format='png',
+    pil_kwargs={"optimize": True}  # Compression for smaller file size
+)
+
+plt.show()
+
+#==================================================================================================================================#
+
 
